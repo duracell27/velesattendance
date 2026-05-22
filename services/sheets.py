@@ -116,7 +116,7 @@ def get_today_checkin(telegram_id: int) -> dict | None:
         return None
     name = user["Ім'я Прізвище"]
     ws = get_or_create_monthly_sheet(now)
-    for record in ws.get_all_records():
+    for record in ws.get_all_records(expected_headers=ATTENDANCE_HEADERS):
         if record.get("Дата") == today_str and record.get("Ім'я Прізвище") == name:
             return record
     return None
@@ -168,7 +168,7 @@ def get_today_attendance() -> list[dict]:
     now = now_kyiv()
     today_str = format_date(now)
     ws = get_or_create_monthly_sheet(now)
-    return [r for r in ws.get_all_records() if r.get("Дата") == today_str]
+    return [r for r in ws.get_all_records(expected_headers=ATTENDANCE_HEADERS) if r.get("Дата") == today_str]
 
 
 def edit_record(name: str, date_str: str, field: str, new_time: str) -> bool:
