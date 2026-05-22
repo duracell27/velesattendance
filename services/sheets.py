@@ -174,7 +174,10 @@ def get_today_attendance() -> list[dict]:
 def edit_record(name: str, date_str: str, field: str, new_time: str) -> bool:
     """Edit arrival ('Прийшла') or departure ('Пішла') time for a specific record."""
     day, month, year = date_str.split(".")
-    dt = datetime(int(year), int(month), int(day))
+    try:
+        dt = datetime(int(year), int(month), int(day))
+    except ValueError:
+        return False
     ws = get_or_create_monthly_sheet(dt)
     col = 3 if field == "Прийшла" else 4
     all_values = ws.get_all_values()

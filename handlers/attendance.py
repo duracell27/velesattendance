@@ -27,6 +27,10 @@ async def checkin_button(message: Message, state: FSMContext):
 @router.message(AttendanceStates.waiting_for_checkin_photo, F.photo)
 async def process_checkin_photo(message: Message, state: FSMContext, bot: Bot):
     user = sheets.get_user(message.from_user.id)
+    if not user:
+        await state.clear()
+        await message.answer("Помилка: ваш профіль не знайдено. Надішліть /start")
+        return
     name = user["Ім'я Прізвище"]
     time_str = format_time(now_kyiv())
     photo_file_id = message.photo[-1].file_id
@@ -64,6 +68,10 @@ async def checkout_button(message: Message, state: FSMContext):
 @router.message(AttendanceStates.waiting_for_checkout_photo, F.photo)
 async def process_checkout_photo(message: Message, state: FSMContext, bot: Bot):
     user = sheets.get_user(message.from_user.id)
+    if not user:
+        await state.clear()
+        await message.answer("Помилка: ваш профіль не знайдено. Надішліть /start")
+        return
     name = user["Ім'я Прізвище"]
     now = now_kyiv()
     time_str = format_time(now)
