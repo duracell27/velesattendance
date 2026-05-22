@@ -1,0 +1,16 @@
+[Unit]
+Description=Veles Attendance Bot
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/velesattendance
+ExecStart=/home/ubuntu/velesattendance/venv/bin/python bot.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
