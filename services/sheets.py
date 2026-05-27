@@ -37,35 +37,45 @@ def _calculate_summary_from_values(all_values: list[list]) -> list[tuple[str, in
     return sorted(totals.items(), key=lambda x: x[1], reverse=True)
 
 
-def _get_client() -> gspread.Client:
-    creds = Credentials.from_service_account_file(GOOGLE_CREDENTIALS_PATH, scopes=SCOPES)
-    return gspread.authorize(creds)
+_spreadsheet: gspread.Spreadsheet | None = None
+_worksheets: dict[str, gspread.Worksheet] = {}
 
 
 def _get_spreadsheet() -> gspread.Spreadsheet:
-    return _get_client().open_by_key(SPREADSHEET_ID)
+    global _spreadsheet
+    if _spreadsheet is None:
+        creds = Credentials.from_service_account_file(GOOGLE_CREDENTIALS_PATH, scopes=SCOPES)
+        _spreadsheet = gspread.authorize(creds).open_by_key(SPREADSHEET_ID)
+    return _spreadsheet
+
+
+def _get_worksheet(name: str) -> gspread.Worksheet | None:
+    if name not in _worksheets:
+        try:
+            _worksheets[name] = _get_spreadsheet().worksheet(name)
+        except gspread.WorksheetNotFound:
+            return None
+    return _worksheets[name]
 
 
 def _get_or_create_users_sheet() -> gspread.Worksheet:
-    ss = _get_spreadsheet()
-    try:
-        return ss.worksheet(USERS_SHEET)
-    except gspread.WorksheetNotFound:
-        ws = ss.add_worksheet(USERS_SHEET, rows=1000, cols=3)
+    ws = _get_worksheet(USERS_SHEET)
+    if ws is None:
+        ws = _get_spreadsheet().add_worksheet(USERS_SHEET, rows=1000, cols=3)
         ws.append_row(["Telegram ID", "Ім'я Прізвище", "Дата реєстрації"])
-        return ws
+        _worksheets[USERS_SHEET] = ws
+    return ws
 
 
 def get_or_create_monthly_sheet(dt: datetime) -> gspread.Worksheet:
-    ss = _get_spreadsheet()
     sheet_name = get_month_sheet_name(dt)
-    try:
-        return ss.worksheet(sheet_name)
-    except gspread.WorksheetNotFound:
-        ws = ss.add_worksheet(sheet_name, rows=1000, cols=10)
+    ws = _get_worksheet(sheet_name)
+    if ws is None:
+        ws = _get_spreadsheet().add_worksheet(sheet_name, rows=1000, cols=10)
         ws.update("A1:E1", [ATTENDANCE_HEADERS])
         ws.update("G1:H1", [SUMMARY_HEADERS])
-        return ws
+        _worksheets[sheet_name] = ws
+    return ws
 
 
 # --- User operations ---
@@ -107,6 +117,15 @@ def delete_worker(telegram_id: int) -> bool:
 
 # --- Attendance operations ---
 
+def _attendance_records(ws: gspread.Worksheet) -> list[dict]:
+    """Read only attendance columns (A-E), avoiding duplicate header in summary column G."""
+    all_values = ws.get_all_values()
+    if not all_values:
+        return []
+    headers = all_values[0][:5]
+    return [dict(zip(headers, row[:5])) for row in all_values[1:] if any(row[:5])]
+
+
 def get_today_checkin(telegram_id: int) -> dict | None:
     """Return today's attendance record for this worker, or None."""
     now = now_kyiv()
@@ -116,7 +135,7 @@ def get_today_checkin(telegram_id: int) -> dict | None:
         return None
     name = user["Ім'я Прізвище"]
     ws = get_or_create_monthly_sheet(now)
-    for record in ws.get_all_records(expected_headers=ATTENDANCE_HEADERS):
+    for record in _attendance_records(ws):
         if record.get("Дата") == today_str and record.get("Ім'я Прізвище") == name:
             return record
     return None
@@ -130,7 +149,7 @@ def has_checked_out_today(telegram_id: int) -> bool:
 def append_checkin(name: str, arrival_time: str) -> None:
     now = now_kyiv()
     ws = get_or_create_monthly_sheet(now)
-    ws.append_row([format_date(now), name, arrival_time, "", ""])
+    ws.append_rows([[format_date(now), name, arrival_time, "", ""]], table_range="A1")
 
 
 def update_checkout(name: str, departure_time: str, hours_worked: str) -> bool:
@@ -168,7 +187,7 @@ def get_today_attendance() -> list[dict]:
     now = now_kyiv()
     today_str = format_date(now)
     ws = get_or_create_monthly_sheet(now)
-    return [r for r in ws.get_all_records(expected_headers=ATTENDANCE_HEADERS) if r.get("Дата") == today_str]
+    return [r for r in _attendance_records(ws) if r.get("Дата") == today_str]
 
 
 def edit_record(name: str, date_str: str, field: str, new_time: str) -> bool:

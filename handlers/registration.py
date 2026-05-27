@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from services import sheets
 from states import RegistrationStates
 from keyboards.main import get_main_keyboard
@@ -16,10 +16,22 @@ async def cmd_start(message: Message, state: FSMContext):
     user = sheets.get_user(message.from_user.id)
     if user:
         name = user["Ім'я Прізвище"]
-        await message.answer(
-            f"Привіт, {name}! Оберіть дію:",
-            reply_markup=get_main_keyboard(),
-        )
+        record = sheets.get_today_checkin(message.from_user.id)
+        if record and record.get("Пішла"):
+            await message.answer(
+                f"Привіт, {name}! Ви вже завершили робочий день сьогодні о {record.get('Пішла')}. До завтра!",
+                reply_markup=ReplyKeyboardRemove(),
+            )
+        elif record:
+            await message.answer(
+                f"Привіт, {name}! Оберіть дію:",
+                reply_markup=get_main_keyboard(checked_in=True),
+            )
+        else:
+            await message.answer(
+                f"Привіт, {name}! Оберіть дію:",
+                reply_markup=get_main_keyboard(),
+            )
         return
     await message.answer(
         "Привіт! Для реєстрації введіть ваше ім'я та прізвище.\n"
