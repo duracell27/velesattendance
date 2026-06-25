@@ -183,6 +183,16 @@ def update_monthly_summary(dt: datetime) -> None:
     ws.update(f"G2:H{1 + len(summary_data)}", summary_data)
 
 
+def get_user_monthly_attendance(telegram_id: int) -> list[dict]:
+    user = get_user(telegram_id)
+    if not user:
+        return []
+    name = user["Ім'я Прізвище"]
+    now = now_kyiv()
+    ws = get_or_create_monthly_sheet(now)
+    return [r for r in _attendance_records(ws) if r.get("Ім'я Прізвище") == name]
+
+
 def get_today_attendance() -> list[dict]:
     now = now_kyiv()
     today_str = format_date(now)

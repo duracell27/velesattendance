@@ -20,7 +20,7 @@ async def cmd_start(message: Message, state: FSMContext):
         if record and record.get("Пішла"):
             await message.answer(
                 f"Привіт, {name}! Ви вже завершили робочий день сьогодні о {record.get('Пішла')}. До завтра!",
-                reply_markup=ReplyKeyboardRemove(),
+                reply_markup=get_main_keyboard(checked_out=True),
             )
         elif record:
             await message.answer(
