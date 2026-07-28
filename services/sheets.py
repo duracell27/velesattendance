@@ -28,9 +28,9 @@ def _calculate_summary_from_values(all_values: list[list]) -> list[tuple[str, in
         if not name or not hours_str:
             continue
         try:
-            parts = hours_str.split()
+            parts = hours_str.lower().split()
             hours = int(parts[0])
-            minutes = int(parts[2])
+            minutes = int(parts[2]) if len(parts) >= 4 else 0
             totals[name] = totals.get(name, 0) + hours * 60 + minutes
         except (IndexError, ValueError):
             continue
