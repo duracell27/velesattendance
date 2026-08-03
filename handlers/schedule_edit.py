@@ -48,7 +48,7 @@ async def cancel_command(message: Message, state: FSMContext):
     await message.answer("Скасовано.")
 
 
-@router.callback_query(F.data == "se:cancel")
+@router.callback_query(F.data == "se:cancel", StateFilter(ScheduleEditStates))
 async def cancel_callback(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text("Скасовано.")
