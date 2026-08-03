@@ -18,3 +18,15 @@ class AdminStates(StatesGroup):
     edit_waiting_for_date = State()
     edit_waiting_for_field = State()
     edit_waiting_for_time = State()
+
+
+class ScheduleEditStates(StatesGroup):
+    choosing_action = State()
+    choosing_month = State()
+    choosing_worker = State()
+    choosing_day = State()
+    entering_arrival = State()
+    entering_departure = State()
+    choosing_field = State()
+    entering_new_time = State()
+    confirming_delete = State()
