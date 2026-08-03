@@ -2,7 +2,7 @@ from aiogram import Router, F, Bot
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from services import sheets, notifications
 from states import AttendanceStates
 from keyboards.main import get_main_keyboard

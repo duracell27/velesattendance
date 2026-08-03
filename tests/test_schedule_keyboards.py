@@ -37,8 +37,13 @@ def test_worker_keyboard_has_all_workers_and_cancel():
     ]
     kb = worker_keyboard(workers)
     cbs = _all_callbacks(kb)
-    assert "se:worker:Іваненко Олена" in cbs
-    assert "se:worker:Петренко Марія" in cbs
+    texts = _all_texts(kb)
+    # callback data uses index, not name
+    assert "se:worker:0" in cbs
+    assert "se:worker:1" in cbs
+    # button text still shows names
+    assert "Іваненко Олена" in texts
+    assert "Петренко Марія" in texts
     assert "se:cancel" in cbs
 
 

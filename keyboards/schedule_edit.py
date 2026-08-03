@@ -21,11 +21,13 @@ def month_keyboard(months: list[str]) -> InlineKeyboardMarkup:
 
 def worker_keyboard(workers: list[dict]) -> InlineKeyboardMarkup:
     rows = []
-    names = [w["Ім'я Прізвище"] for w in workers]
-    for i in range(0, len(names), 2):
+    for i in range(0, len(workers), 2):
         row = [
-            InlineKeyboardButton(text=n, callback_data=f"se:worker:{n}")
-            for n in names[i:i + 2]
+            InlineKeyboardButton(
+                text=workers[i + j]["Ім'я Прізвище"],
+                callback_data=f"se:worker:{i + j}",
+            )
+            for j in range(min(2, len(workers) - i))
         ]
         rows.append(row)
     rows.append([InlineKeyboardButton(text="❌ Скасувати", callback_data="se:cancel")])

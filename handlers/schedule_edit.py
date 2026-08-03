@@ -93,7 +93,9 @@ async def month_selected(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("se:worker:"), StateFilter(ScheduleEditStates.choosing_worker))
 async def worker_selected(callback: CallbackQuery, state: FSMContext):
-    worker_name = callback.data.split(":", 2)[2]
+    idx = int(callback.data.split(":", 2)[2])
+    workers = sheets.get_all_workers()
+    worker_name = workers[idx]["Ім'я Прізвище"]
     await state.update_data(worker_name=worker_name)
     data = await state.get_data()
     year, month = _parse_sheet_name(data["sheet_name"])
@@ -129,16 +131,19 @@ async def day_selected(callback: CallbackQuery, state: FSMContext):
         await state.set_state(ScheduleEditStates.choosing_field)
 
     elif action == "delete":
+        date_str = _build_date_str(data["sheet_name"], day)
         record = sheets.get_record(date_str, data["worker_name"])
-        if record:
-            info = (
-                f"📅 {date_str}  👤 {data['worker_name']}\n"
-                f"🕐 Прийшла: {record.get('Прийшла', '—')}\n"
-                f"🕐 Пішла: {record.get('Пішла', '—')}\n"
-                f"⏱ Відпрацьовано: {record.get('Відпрацьовано', '—')}"
-            )
-        else:
-            info = f"📅 {date_str}  👤 {data['worker_name']}\n(запис не знайдено)"
+        if not record:
+            await callback.message.edit_text("❌ Запис не знайдено.")
+            await state.clear()
+            await callback.answer()
+            return
+        info = (
+            f"📅 {date_str}  👤 {data['worker_name']}\n"
+            f"🕐 Прийшла: {record.get('Прийшла', '—')}\n"
+            f"🕐 Пішла: {record.get('Пішла', '—')}\n"
+            f"⏱ Відпрацьовано: {record.get('Відпрацьовано', '—')}"
+        )
         await callback.message.edit_text(
             f"🗑 Видалення запису:\n\n{info}\n\nПідтвердити?",
             reply_markup=confirm_delete_keyboard(),
