@@ -2,7 +2,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 from config import SPREADSHEET_ID, GOOGLE_CREDENTIALS_PATH
-from utils import format_date, get_month_sheet_name, now_kyiv, calculate_hours_worked
+from utils import format_date, get_month_sheet_name, now_kyiv, calculate_hours_worked, MONTH_NAMES_UK
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -218,6 +218,59 @@ def edit_record(name: str, date_str: str, field: str, new_time: str) -> bool:
             departure = _get_col(updated, 3)
             if arrival and departure:
                 ws.update_cell(i + 1, 5, calculate_hours_worked(arrival, departure))
+            update_monthly_summary(dt)
+            return True
+    return False
+
+
+# --- Admin schedule edit operations ---
+
+def get_available_months() -> list[str]:
+    month_names = set(MONTH_NAMES_UK.values())
+    month_num = {v: k for k, v in MONTH_NAMES_UK.items()}
+    result = []
+    for ws in _get_spreadsheet().worksheets():
+        parts = ws.title.split(" ")
+        if len(parts) == 2 and parts[0] in month_names and parts[1].isdigit():
+            result.append(ws.title)
+    return sorted(
+        result,
+        key=lambda t: (int(t.split()[1]), month_num[t.split()[0]]),
+        reverse=True,
+    )
+
+
+def get_record(date_str: str, name: str) -> dict | None:
+    day, month, year = date_str.split(".")
+    dt = datetime(int(year), int(month), int(day))
+    ws = get_or_create_monthly_sheet(dt)
+    for record in _attendance_records(ws):
+        if record.get("Дата") == date_str and record.get("Ім'я Прізвище") == name:
+            return record
+    return None
+
+
+def add_record(date_str: str, name: str, arrival: str, departure: str) -> bool:
+    day, month, year = date_str.split(".")
+    dt = datetime(int(year), int(month), int(day))
+    ws = get_or_create_monthly_sheet(dt)
+    for record in _attendance_records(ws):
+        if record.get("Дата") == date_str and record.get("Ім'я Прізвище") == name:
+            return False
+    hours_str = calculate_hours_worked(arrival, departure)
+    ws.append_rows([[date_str, name, arrival, departure, hours_str]], table_range="A1")
+    update_monthly_summary(dt)
+    return True
+
+
+def delete_record(date_str: str, name: str) -> bool:
+    day, month, year = date_str.split(".")
+    dt = datetime(int(year), int(month), int(day))
+    ws = get_or_create_monthly_sheet(dt)
+    all_values = ws.get_all_values()
+    for i, row in enumerate(all_values):
+        if _get_col(row, 0) == date_str and _get_col(row, 1) == name:
+            ws.delete_rows(i + 1)
             update_monthly_summary(dt)
             return True
     return False
