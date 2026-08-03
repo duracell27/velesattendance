@@ -6,7 +6,12 @@ def get_main_keyboard(
     checked_out: bool = False,
     is_admin: bool = False,
 ) -> ReplyKeyboardMarkup:
-    if checked_out:
+    if is_admin:
+        buttons = [
+            [KeyboardButton(text="📊 Звіт відвідуваності")],
+            [KeyboardButton(text="📝 Редагувати графік")],
+        ]
+    elif checked_out:
         buttons = [
             [KeyboardButton(text="📊 Моя відвідуваність")],
         ]
@@ -21,6 +26,4 @@ def get_main_keyboard(
             [KeyboardButton(text="🚪 Пішла з роботи")],
             [KeyboardButton(text="📊 Моя відвідуваність")],
         ]
-    if is_admin:
-        buttons.append([KeyboardButton(text="📝 Редагувати графік")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, persistent=True)
