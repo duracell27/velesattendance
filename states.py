@@ -30,3 +30,8 @@ class ScheduleEditStates(StatesGroup):
     choosing_field = State()
     entering_new_time = State()
     confirming_delete = State()
+
+
+class AdminReportStates(StatesGroup):
+    choosing_month = State()
+    choosing_worker = State()
