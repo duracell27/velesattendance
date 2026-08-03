@@ -274,3 +274,10 @@ def delete_record(date_str: str, name: str) -> bool:
             update_monthly_summary(dt)
             return True
     return False
+
+
+def get_attendance_by_name_and_month(name: str, sheet_name: str) -> list[dict]:
+    ws = _get_worksheet(sheet_name)
+    if ws is None:
+        return []
+    return [r for r in _attendance_records(ws) if r.get("Ім'я Прізвище") == name]
