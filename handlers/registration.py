@@ -6,6 +6,7 @@ from services import sheets
 from states import RegistrationStates
 from keyboards.main import get_main_keyboard
 from utils import validate_full_name
+from config import ALL_ADMIN_IDS
 
 router = Router()
 
@@ -17,20 +18,21 @@ async def cmd_start(message: Message, state: FSMContext):
     if user:
         name = user["Ім'я Прізвище"]
         record = sheets.get_today_checkin(message.from_user.id)
+        is_admin = message.from_user.id in ALL_ADMIN_IDS
         if record and record.get("Пішла"):
             await message.answer(
                 f"Привіт, {name}! Ви вже завершили робочий день сьогодні о {record.get('Пішла')}. До завтра!",
-                reply_markup=get_main_keyboard(checked_out=True),
+                reply_markup=get_main_keyboard(checked_out=True, is_admin=is_admin),
             )
         elif record:
             await message.answer(
                 f"Привіт, {name}! Оберіть дію:",
-                reply_markup=get_main_keyboard(checked_in=True),
+                reply_markup=get_main_keyboard(checked_in=True, is_admin=is_admin),
             )
         else:
             await message.answer(
                 f"Привіт, {name}! Оберіть дію:",
-                reply_markup=get_main_keyboard(),
+                reply_markup=get_main_keyboard(is_admin=is_admin),
             )
         return
     await message.answer(

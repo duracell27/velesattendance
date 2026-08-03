@@ -7,6 +7,7 @@ from services import sheets, notifications
 from states import AttendanceStates
 from keyboards.main import get_main_keyboard
 from utils import format_time, format_date, now_kyiv, calculate_hours_worked
+from config import ALL_ADMIN_IDS
 
 router = Router()
 
@@ -22,12 +23,12 @@ async def checkin_button(message: Message, state: FSMContext):
         if record.get("Пішла"):
             await message.answer(
                 "❌ Ви вже завершили робочий день сьогодні. Повторна реєстрація приходу неможлива.",
-                reply_markup=get_main_keyboard(checked_out=True),
+                reply_markup=get_main_keyboard(checked_out=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
             )
         else:
             await message.answer(
                 f"❌ Ви вже зареєстровані на роботі сьогодні о {record.get('Прийшла')}.",
-                reply_markup=get_main_keyboard(checked_in=True),
+                reply_markup=get_main_keyboard(checked_in=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
             )
         return
     await message.answer("📸 Надішліть фото для підтвердження приходу:")
@@ -49,7 +50,7 @@ async def process_checkin_photo(message: Message, state: FSMContext, bot: Bot):
     await state.clear()
     await message.answer(
         f"✅ Ви успішно зареєстровані на роботі о {time_str}",
-        reply_markup=get_main_keyboard(checked_in=True),
+        reply_markup=get_main_keyboard(checked_in=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
     )
     await notifications.notify_hr_checkin(bot, name, time_str, photo_file_id)
 
@@ -69,13 +70,13 @@ async def checkout_button(message: Message, state: FSMContext):
     if not record:
         await message.answer(
             "❌ Ви ще не зареєструвались на роботі сьогодні. Спочатку натисніть «Прийшла на роботу».",
-            reply_markup=get_main_keyboard(),
+            reply_markup=get_main_keyboard(is_admin=message.from_user.id in ALL_ADMIN_IDS),
         )
         return
     if record.get("Пішла"):
         await message.answer(
             f"❌ Ви вже відмітили вихід з роботи сьогодні о {record.get('Пішла')}.",
-            reply_markup=get_main_keyboard(checked_out=True),
+            reply_markup=get_main_keyboard(checked_out=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
         )
         return
     await message.answer("📸 Надішліть фото для підтвердження виходу:")
@@ -158,4 +159,4 @@ async def my_attendance(message: Message):
     checked_in = sheets.get_today_checkin(message.from_user.id)
     is_checked_in = bool(checked_in and not checked_in.get("Пішла"))
 
-    await message.answer(text, parse_mode="HTML", reply_markup=get_main_keyboard(checked_in=is_checked_in))
+    await message.answer(text, parse_mode="HTML", reply_markup=get_main_keyboard(checked_in=is_checked_in, is_admin=message.from_user.id in ALL_ADMIN_IDS))

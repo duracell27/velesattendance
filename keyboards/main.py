@@ -1,7 +1,11 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 
-def get_main_keyboard(checked_in: bool = False, checked_out: bool = False) -> ReplyKeyboardMarkup:
+def get_main_keyboard(
+    checked_in: bool = False,
+    checked_out: bool = False,
+    is_admin: bool = False,
+) -> ReplyKeyboardMarkup:
     if checked_out:
         buttons = [
             [KeyboardButton(text="📊 Моя відвідуваність")],
@@ -17,4 +21,6 @@ def get_main_keyboard(checked_in: bool = False, checked_out: bool = False) -> Re
             [KeyboardButton(text="🚪 Пішла з роботи")],
             [KeyboardButton(text="📊 Моя відвідуваність")],
         ]
+    if is_admin:
+        buttons.append([KeyboardButton(text="📝 Редагувати графік")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, persistent=True)
