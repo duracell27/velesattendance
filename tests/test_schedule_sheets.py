@@ -34,6 +34,14 @@ def test_get_available_months_sorted_newest_first():
     assert result == ["Серпень 2026", "Липень 2026", "Грудень 2025"]
 
 
+def test_get_available_months_returns_empty_when_no_month_sheets():
+    mock_ws = MagicMock(); mock_ws.title = "users"
+    with patch.object(sheets, '_get_spreadsheet') as mock_sp:
+        mock_sp.return_value.worksheets.return_value = [mock_ws]
+        result = sheets.get_available_months()
+    assert result == []
+
+
 # --- get_record ---
 
 def test_get_record_returns_none_if_not_found():
@@ -81,7 +89,8 @@ def test_add_record_appends_row_and_updates_summary():
         ["Дата", "Ім'я Прізвище", "Прийшла", "Пішла", "Відпрацьовано"],
     ]
     with patch.object(sheets, 'get_or_create_monthly_sheet', return_value=mock_ws), \
-         patch.object(sheets, 'update_monthly_summary') as mock_update:
+         patch.object(sheets, 'update_monthly_summary') as mock_update, \
+         patch.object(sheets, 'calculate_hours_worked', return_value="8 год 0 хв") as mock_hours:
         result = sheets.add_record("03.08.2026", "Іваненко Олена", "09:00", "17:00")
     assert result is True
     mock_ws.append_rows.assert_called_once_with(
@@ -89,6 +98,7 @@ def test_add_record_appends_row_and_updates_summary():
         table_range="A1",
     )
     mock_update.assert_called_once()
+    mock_hours.assert_called_once_with("09:00", "17:00")
 
 
 # --- delete_record ---
