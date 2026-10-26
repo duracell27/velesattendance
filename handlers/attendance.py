@@ -16,25 +16,32 @@ logger = logging.getLogger(__name__)
 
 @router.message(F.text == "✅ Прийшла на роботу", StateFilter(default_state))
 async def checkin_button(message: Message, state: FSMContext):
-    user = sheets.get_user(message.from_user.id)
-    if not user:
-        await message.answer("Спочатку зареєструйтесь. Надішліть /start")
-        return
-    record = sheets.get_today_checkin(message.from_user.id)
-    if record:
-        if record.get("Пішла"):
-            await message.answer(
-                "❌ Ви вже завершили робочий день сьогодні. Повторна реєстрація приходу неможлива.",
-                reply_markup=get_main_keyboard(checked_out=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
-            )
-        else:
-            await message.answer(
-                f"❌ Ви вже зареєстровані на роботі сьогодні о {record.get('Прийшла')}.",
-                reply_markup=get_main_keyboard(checked_in=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
-            )
-        return
-    await message.answer("📸 Надішліть фото для підтвердження приходу:")
-    await state.set_state(AttendanceStates.waiting_for_checkin_photo)
+    try:
+        user = sheets.get_user(message.from_user.id)
+        if not user:
+            await message.answer("Спочатку зареєструйтесь. Надішліть /start")
+            return
+        record = sheets.get_today_checkin(message.from_user.id)
+        if record:
+            if record.get("Пішла"):
+                await message.answer(
+                    "❌ Ви вже завершили робочий день сьогодні. Повторна реєстрація приходу неможлива.",
+                    reply_markup=get_main_keyboard(checked_out=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
+                )
+            else:
+                await message.answer(
+                    f"❌ Ви вже зареєстровані на роботі сьогодні о {record.get('Прийшла')}.",
+                    reply_markup=get_main_keyboard(checked_in=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
+                )
+            return
+        await message.answer("📸 Надішліть фото для підтвердження приходу:")
+        await state.set_state(AttendanceStates.waiting_for_checkin_photo)
+    except Exception:
+        logger.exception("Error in checkin_button for user %s", message.from_user.id)
+        await message.answer(
+            "❌ Виникла помилка. Спробуйте ще раз або зверніться до адміністратора.",
+            reply_markup=get_main_keyboard(is_admin=message.from_user.id in ALL_ADMIN_IDS),
+        )
 
 
 @router.message(AttendanceStates.waiting_for_checkin_photo, F.photo)
@@ -84,25 +91,32 @@ async def checkin_not_photo(message: Message):
 
 @router.message(F.text == "🚪 Пішла з роботи", StateFilter(default_state))
 async def checkout_button(message: Message, state: FSMContext):
-    user = sheets.get_user(message.from_user.id)
-    if not user:
-        await message.answer("Спочатку зареєструйтесь. Надішліть /start")
-        return
-    record = sheets.get_today_checkin(message.from_user.id)
-    if not record:
+    try:
+        user = sheets.get_user(message.from_user.id)
+        if not user:
+            await message.answer("Спочатку зареєструйтесь. Надішліть /start")
+            return
+        record = sheets.get_today_checkin(message.from_user.id)
+        if not record:
+            await message.answer(
+                "❌ Ви ще не зареєструвались на роботі сьогодні. Спочатку натисніть «Прийшла на роботу».",
+                reply_markup=get_main_keyboard(is_admin=message.from_user.id in ALL_ADMIN_IDS),
+            )
+            return
+        if record.get("Пішла"):
+            await message.answer(
+                f"❌ Ви вже відмітили вихід з роботи сьогодні о {record.get('Пішла')}.",
+                reply_markup=get_main_keyboard(checked_out=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
+            )
+            return
+        await message.answer("📸 Надішліть фото для підтвердження виходу:")
+        await state.set_state(AttendanceStates.waiting_for_checkout_photo)
+    except Exception:
+        logger.exception("Error in checkout_button for user %s", message.from_user.id)
         await message.answer(
-            "❌ Ви ще не зареєструвались на роботі сьогодні. Спочатку натисніть «Прийшла на роботу».",
+            "❌ Виникла помилка. Спробуйте ще раз або зверніться до адміністратора.",
             reply_markup=get_main_keyboard(is_admin=message.from_user.id in ALL_ADMIN_IDS),
         )
-        return
-    if record.get("Пішла"):
-        await message.answer(
-            f"❌ Ви вже відмітили вихід з роботи сьогодні о {record.get('Пішла')}.",
-            reply_markup=get_main_keyboard(checked_out=True, is_admin=message.from_user.id in ALL_ADMIN_IDS),
-        )
-        return
-    await message.answer("📸 Надішліть фото для підтвердження виходу:")
-    await state.set_state(AttendanceStates.waiting_for_checkout_photo)
 
 
 @router.message(AttendanceStates.waiting_for_checkout_photo, F.photo)
