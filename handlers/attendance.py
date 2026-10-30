@@ -14,9 +14,10 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 
-@router.message(F.text == "✅ Прийшла на роботу", StateFilter(default_state))
+@router.message(F.text == "✅ Прийшла на роботу")
 async def checkin_button(message: Message, state: FSMContext):
     try:
+        await state.clear()
         user = sheets.get_user(message.from_user.id)
         if not user:
             await message.answer("Спочатку зареєструйтесь. Надішліть /start")
@@ -89,9 +90,10 @@ async def checkin_not_photo(message: Message):
     await message.answer("Будь ласка, надішліть фото (не файл і не текст).")
 
 
-@router.message(F.text == "🚪 Пішла з роботи", StateFilter(default_state))
+@router.message(F.text == "🚪 Пішла з роботи")
 async def checkout_button(message: Message, state: FSMContext):
     try:
+        await state.clear()
         user = sheets.get_user(message.from_user.id)
         if not user:
             await message.answer("Спочатку зареєструйтесь. Надішліть /start")
